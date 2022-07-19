@@ -1,0 +1,23 @@
+{
+ "hostname": {
+  "S": "{{ route53_ddns_hostname }}.{{ route53_ddns_route53zonename }}."
+ },
+ "record_type": {
+  "S": "{{ route53_ddns_record_type }}" 
+ },
+ "allow_internal": {
+  "BOOL": {{ route53_ddns_hostname_allow_internal }}
+ },
+ "last_accessed": {
+  "S": "_"
+ },
+ "last_checked": {
+  "S": "_"
+ },
+ "lock_record": {
+  "BOOL": false
+ },
+ "shared_secret": {
+  "S": "{{ route53_ddns_shared_secret }}"
+ }
+}

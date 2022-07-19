@@ -1,0 +1,10 @@
+---
+- name: Run windows task
+  ansible.windows.win_shell: schtasks /run /tn "route53_dynamic_dns"
+  when:
+    - ansible_system == 'Win32NT'
+
+- name: Run osx task
+  ansible.builtin.command: /usr/local/bin/route53-ddns-client-wrapper.sh
+  when:
+    - ansible_distribution == 'MacOSX'

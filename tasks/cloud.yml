@@ -1,0 +1,64 @@
+---
+# Only debugging. Remove this.
+- name: Print the gateway for each host when defined
+  ansible.builtin.debug:
+    msg: System {{ inventory_hostname }} has gateway {{ ansible_default_ipv4.gateway }}
+  when: ansible_default_ipv4.gateway is defined
+
+- name: Get the current caller identity information
+  amazon.aws.aws_caller_info:
+  register: caller_info
+  delegate_to: localhost
+  run_once: true
+
+- name: Print caller_info
+  ansible.builtin.debug:
+    msg: "Caller info is :: {{ caller_info }}"
+
+- name: Set S3 bucket name
+  ansible.builtin.set_fact:
+    route53_ddns_cloudformation_bucket: "route53-dynamic-dns-{{ route53_ddns_region }}-{{ caller_info.account }}"
+    route53_ddns_cloudformation_template_name: "{{ route53_ddns_stack_name }}_{{ route53_ddns_templateversion }}.yml"
+
+- name: Print S3 bucket
+  ansible.builtin.debug:
+    msg: "{{ route53_ddns_cloudformation_bucket }}"
+
+- name: upload cloudformation template
+  amazon.aws.aws_s3:
+    bucket: "{{ route53_ddns_cloudformation_bucket }}"
+    object: "/{{ route53_ddns_cloudformation_template_name }}"
+    content: "{{ lookup('file', route53_ddns_cloudformation_template) }}"
+    mode: put
+    overwrite: 'different'
+
+- name: create the cloudformation stack
+  amazon.aws.cloudformation:
+    stack_name: "{{ route53_ddns_stack_name }}"
+    state: "present"
+    region: "{{ route53_ddns_region }}"
+    disable_rollback: "{{ route53_ddns_stack_disable_rollback }}"
+    template_url: "https://s3.amazonaws.com/{{ route53_ddns_cloudformation_bucket }}/{{ route53_ddns_cloudformation_template_name }}"
+    template_parameters:
+      acmCertificateARN: "{{ route53_ddns_acmcertificatearn }}"
+      apiCname: "{{ route53_ddns_apicname }}"
+      cloudFrontPriceClass: "{{ route53_ddns_cloudfrontpriceclass }}"
+      ddbGsiRcu: "{{ route53_ddns_ddbgsircu }}"
+      ddbGsiWcu: "{{ route53_ddns_ddbgsiwcu }}"
+      ddbRcu: "{{ route53_ddns_ddbrcu }}"
+      ddbWcu: "{{ route53_ddns_ddbwcu }}"
+      defaultTtl: "{{ route53_ddns_defaultttl }}"
+      enableCloudFront: "{{ route53_ddns_enablecloudfront }}"
+      route53ZoneId: "{{ route53_ddns_route53zoneid }}"
+      route53ZoneName: "{{ route53_ddns_route53zonename }}"
+      templateVersion: "{{ route53_ddns_templateversion }}"
+      useApiKey: "{{ route53_ddns_useapikey }}"
+
+- name: Get summary information about a stack
+  amazon.aws.cloudformation_info:
+    stack_name: "{{ route53_ddns_stack_name }}"
+  register: route53_ddns_stack_output
+
+- name: Debug stack output
+  ansible.builtin.debug:
+    msg: "{{ route53_ddns_stack_output }}"

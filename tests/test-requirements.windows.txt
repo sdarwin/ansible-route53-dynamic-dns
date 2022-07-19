@@ -1,0 +1,3 @@
+pywinrm
+passlib
+boto3

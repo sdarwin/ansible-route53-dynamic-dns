@@ -1,0 +1,3 @@
+
+[targetnodes]
+targethost ansible_connection=local

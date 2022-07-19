@@ -1,0 +1,35 @@
+---
+- name: Remove stack
+  hosts: targetnodes
+  become: true
+  vars:
+    route53_ddns_region: us-east-1
+    route53_ddns_stack_name: dyndns
+    route53_ddns_ip_version: ipv4
+
+  tasks:
+    - name: Get the current caller identity information
+      amazon.aws.aws_caller_info:
+      register: caller_info
+      delegate_to: localhost
+      run_once: true
+
+    #    - name: Print caller_info
+    #      ansible.builtin.debug:
+    #        msg: "Caller info is :: {{ caller_info }}"
+
+    - name: Determine S3 config bucket name in cloudformation
+      ansible.builtin.set_fact:
+        route53_ddns_configbucket: "{{ route53_ddns_stack_name }}-{{ route53_ddns_region }}-{{ caller_info.account }}"
+
+    - name: Delete a bucket and all contents
+      amazon.aws.aws_s3:
+        bucket: "{{ route53_ddns_configbucket }}"
+        mode: delete
+
+    - name: delete stack
+      amazon.aws.cloudformation:
+        stack_name: "{{ route53_ddns_stack_name }}"
+        state: "absent"
+      delegate_to: localhost
+      run_once: true

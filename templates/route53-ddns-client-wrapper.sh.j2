@@ -1,0 +1,3 @@
+#!/bin/bash
+
+/usr/local/bin/route53-ddns-client.sh --hostname {{ route53_ddns_hostname }}.{{ route53_ddns_route53zonename }} --secret {{ route53_ddns_shared_secret }} --url {{ route53_ddns_apiurl }}  --api-key {{ route53_ddns_apikey }} --ip-source {{ route53_ddns_ip_source }} --cache {{ route53_ddns_cache_ttl_minutes }} --ip-version {{ route53_ddns_ip_version }}
