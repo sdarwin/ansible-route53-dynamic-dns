@@ -70,6 +70,15 @@
     - ansible_distribution == 'MacOSX'
     - brewpackages is not succeeded
 
+- name: Create bin dir
+  ansible.builtin.file:
+    dest: "/usr/local/bin"
+    state: directory
+    owner: root
+    group: "{{ route53_ddns_root_group }}"
+    mode: '0755'
+  when: ansible_system == 'Linux' or ansible_distribution == "MacOSX"
+
 - name: Create a symbolic link, if jq isn't in PATH
   ansible.builtin.file:
     src: /opt/homebrew/bin/jq
@@ -238,15 +247,6 @@
   delegate_to: localhost
   changed_when: false
 
-- name: Create bin dir
-  ansible.builtin.file:
-    dest: "/usr/local/bin"
-    state: directory
-    owner: root
-    group: "{{ route53_ddns_root_group }}"
-    mode: '0755'
-  when: ansible_system == 'Linux' or ansible_distribution == "MacOSX"
-
 - name: route53-ddns-client script - linux
   ansible.builtin.copy:
     src: route53-ddns-client.sh
@@ -302,7 +302,7 @@
 
 - name: Check if windows task exists
   ansible.windows.win_shell: schtasks /Query /TN "route53_dynamic_dns" /V /FO List
-  register: output
+  register: schtasksoutput
   failed_when: false
   changed_when: false
   when: ansible_system == 'Win32NT'
@@ -311,7 +311,7 @@
   ansible.windows.win_shell: schtasks /create /tn "route53_dynamic_dns" /sc onstart /delay 0000:10 /rl highest /ru system /tr "powershell.exe -windowstyle hidden -command C:\route53\route53-ddns-client-lite-wrapper.ps1 >> %TEMP%\route53.log 2>&1"
   when:
     - ansible_system == 'Win32NT'
-    - output.rc == 1
+    - schtasksoutput.rc == 1
   notify:
     - Run windows task
 
@@ -320,7 +320,7 @@
     src: route53.dyndns.plist.j2
     dest: /Library/LaunchDaemons/route53.dyndns.plist
     owner: root
-    group: wheel
+    group: "{{ route53_ddns_root_group }}"
     mode: 0755
   notify: Run osx task
   when: ansible_distribution == "MacOSX"

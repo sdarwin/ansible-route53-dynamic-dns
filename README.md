@@ -11,7 +11,7 @@ The goal of this Ansible role is to install and manage route53-dynamic-dns-with-
 
 Review defaults/main.yml, and configure required variables locally in groups_vars/all (or other file). Refer to the [original docs](https://github.com/awslabs/route53-dynamic-dns-with-lambda) for an explanation of most of those variables.
 
-On the ansible control machine, install boto3 and the AWS CLI. Configure the cli with credentials to be able to launch cloudformation stacks. `aws configure`
+On the ansible control machine, install boto3 and the AWS CLI. Configure the cli with credentials to be able to launch cloudformation stacks. `aws configure`. Refer to scripts/install-control-node.sh. The IAM user requires a set of permissions covered in files/iam_policy_route53_ddns_admin_general, that could be locked down further.
 
 The playbook can be run in its entirety, or only in sections:
 

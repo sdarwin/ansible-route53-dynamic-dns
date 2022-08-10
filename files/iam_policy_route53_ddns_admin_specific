@@ -1,2 +1,4 @@
 
 TODO
+
+Hypothetically the ansible playbook could parse all variables and output an IAM json policy file. Contributions welcome.

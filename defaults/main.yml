@@ -3,10 +3,10 @@
 route53_ddns_route53zonename: dyn.example.com
 route53_ddns_secret_salt: xqPqHVUm4OWkC44F
 
-# The second set of variables you should carefully consider. they might need to be modified.
+# The second set of variables you should carefully consider. They might need to be modified.
 route53_ddns_route53zoneid: ""
 
-# The third set of variables may be left as defaults, or changed depending on your use case.
+# The third set of variables may be left as defaults or changed depending on your use case.
 route53_ddns_ip_source: public
 route53_ddns_cache_ttl_minutes: 0
 route53_ddns_ip_version: ipv4

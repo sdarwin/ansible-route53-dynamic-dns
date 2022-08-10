@@ -5,18 +5,10 @@
   delegate_to: localhost
   run_once: true
 
-- name: Print caller_info
-  ansible.builtin.debug:
-    msg: "Caller info is :: {{ caller_info }}"
-
 - name: Set S3 bucket name
   ansible.builtin.set_fact:
     route53_ddns_cloudformation_bucket: "route53-dynamic-dns-{{ route53_ddns_region }}-{{ caller_info.account }}"
     route53_ddns_cloudformation_template_name: "{{ route53_ddns_stack_name }}_{{ route53_ddns_templateversion }}.yml"
-
-- name: Print S3 bucket
-  ansible.builtin.debug:
-    msg: "{{ route53_ddns_cloudformation_bucket }}"
 
 - name: upload cloudformation template
   amazon.aws.aws_s3:
@@ -48,11 +40,11 @@
       templateVersion: "{{ route53_ddns_templateversion }}"
       useApiKey: "{{ route53_ddns_useapikey }}"
 
-- name: Get summary information about a stack
-  amazon.aws.cloudformation_info:
-    stack_name: "{{ route53_ddns_stack_name }}"
-  register: route53_ddns_stack_output
-
-- name: Debug stack output
-  ansible.builtin.debug:
-    msg: "{{ route53_ddns_stack_output }}"
+# - name: Get summary information about a stack
+#   amazon.aws.cloudformation_info:
+#     stack_name: "{{ route53_ddns_stack_name }}"
+#   register: route53_ddns_stack_output
+#
+# - name: Debug stack output
+#   ansible.builtin.debug:
+#     msg: "{{ route53_ddns_stack_output }}"

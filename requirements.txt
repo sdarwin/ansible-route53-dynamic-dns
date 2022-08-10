@@ -1,3 +1,0 @@
-
-awscliv2
-boto3
