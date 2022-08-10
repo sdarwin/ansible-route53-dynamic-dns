@@ -247,7 +247,6 @@ jobs:
 
             echo "Idempotence check"
             idempotence=$(mktemp)
-            # ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/playbook.yml | tee -a ${idempotence}
             ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" -t client molecule/${{ matrix.scenario }}/converge.yml | tee -a ${idempotence}
             tail ${idempotence} | grep -q 'changed=0.*failed=0' && (echo 'Idempotence test: pass' && exit 0) || (echo 'Idempotence test: fail' && exit 1)
           fi
@@ -304,15 +303,11 @@ jobs:
           ls -alR /Users/runner/.ansible/roles/sdarwin.route53_dynamic_dns/
           which python3
 
-          # mkdir downloads
-          # cd downloads
-          # curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
-          # sudo installer -pkg AWSCLIV2.pkg -target /
-          aws configure list
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure set default.region ${{ secrets.AWS_REGION }}
-          aws configure list
+          # aws configure list
+          # aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          # aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # aws configure set default.region ${{ secrets.AWS_REGION }}
+          # aws configure list
           sudo -H aws configure list
           sudo -H aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
           sudo -H aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -327,21 +322,17 @@ jobs:
           else
             echo "Test the playbook's syntax"
             # ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/playbook.yml --syntax-check
-            # ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/converge.yml --syntax-check
+            ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/converge.yml --syntax-check
 
             #echo "Run the prepare playbook"
             #ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/prepare.yml
 
             echo "Run the main playbook"
-            # ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" -t client molecule/${{ matrix.scenario }}/converge.yml
-            # ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/converge.yml
             ansible-playbook -e "ansible_python_interpreter=python3" -t client molecule/${{ matrix.scenario }}/converge.yml
-            # ansible-playbook -e "ansible_python_interpreter=python3" molecule/${{ matrix.scenario }}/converge.yml
 
             echo "Idempotence check"
             idempotence=$(mktemp)
             ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" -t client molecule/${{ matrix.scenario }}/converge.yml | tee -a ${idempotence}
-            # ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/converge.yml | tee -a ${idempotence}
             tail ${idempotence} | grep -q 'changed=0.*failed=0' && (echo 'Idempotence test: pass' && exit 0) || (echo 'Idempotence test: fail' && exit 1)
 
             echo "Test the results"

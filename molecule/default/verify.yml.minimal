@@ -1,0 +1,18 @@
+---
+- name: Verify
+  hosts: targetnodes
+  become: true
+  vars:
+    route53_ddns_region: us-east-1
+    route53_ddns_stack_name: dyndns
+    route53_ddns_ip_version: ipv4
+    route53_ddns_route53zonename: "{{ lookup('env', 'ROUTE53_ZONENAME') }}"
+    route53_ddns_route53zoneid: "{{ lookup('env', 'ROUTE53_ZONEID') }}"
+    route53_ddns_hostname_part_1: 0
+    route53_ddns_hostname_part_2: 1
+    route53_ddns_hostname: ""
+
+  tasks:
+    - name: debug
+      ansible.builtin.debug:
+        msg: "In the verify file!!"
