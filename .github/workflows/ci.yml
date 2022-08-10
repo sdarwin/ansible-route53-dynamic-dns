@@ -46,6 +46,7 @@ jobs:
         include:
           - distro: ubuntu2004
             playbook: converge.yml
+            ansible_version: 6.2
 
     steps:
       - name: Check out the codebase.
@@ -58,8 +59,12 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Install ansible
+        run: |
+           sudo pip3 install "ansible~=${{ matrix.ansible_version }}.0"
+
       - name: Install test dependencies.
-        run: pip3 install ansible ansible-lint molecule[docker] docker boto3
+        run: pip3 install ansible-lint molecule[docker] docker boto3
 
       - name: Configure aws cli
         run: |

@@ -10,7 +10,7 @@
     route53_ddns_route53zoneid: "{{ lookup('env', 'ROUTE53_ZONEID') }}"
     route53_ddns_hostname_part_1: 0
     route53_ddns_hostname_part_2: 1
-    route53_ddns_hostname: ""
+    route53_ddns_hostname: "{{ inventory_hostname_short }}-{{ lookup('env', 'ANSIBLE_VERSION') }}"
 
   tasks:
     - name: all verify tasks
@@ -37,11 +37,11 @@
               - jq
           when: ansible_system == 'Win32NT'
 
-        - name: Calculate route53_ddns_hostname
-          ansible.builtin.set_fact:
-            route53_ddns_hostname: "{{ inventory_hostname.split('.')[route53_ddns_hostname_part_1:route53_ddns_hostname_part_2] | join('.') }}"
-          when:
-            - not route53_ddns_hostname
+        # - name: Calculate route53_ddns_hostname
+        #   ansible.builtin.set_fact:
+        #     route53_ddns_hostname: "{{ inventory_hostname.split('.')[route53_ddns_hostname_part_1:route53_ddns_hostname_part_2] | join('.') }}"
+        #   when:
+        #     - not route53_ddns_hostname
 
         - name: Show route53_ddns_hostname
           ansible.builtin.debug:
