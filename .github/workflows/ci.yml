@@ -258,7 +258,7 @@ jobs:
           ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
           ANSIBLE_VERSION: ${{ matrix.ansible_version }}
 
-  macosx_clients:
+  mac_clients:
     name: MacOSX Clients
     runs-on: ${{ matrix.os }}
     needs: cloudformation
@@ -337,7 +337,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - linux_clients
-      - macos_clients
+      - mac_clients
       - windows_clients
     strategy:
       fail-fast: false
