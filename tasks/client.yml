@@ -267,14 +267,14 @@
 
 - name: route53-ddns-client dir - windows
   ansible.windows.win_file:
-    path: C:\Program Files\route53
+    path: "{{ route53_ddns_win_install_dir }}"
     state: directory
   when: ansible_system == 'Win32NT'
 
 - name: Set permissions on dir
   ansible.windows.win_acl:
-    path: C:\Program Files\route53
-    user: Administrators
+    path: "{{ route53_ddns_win_install_dir }}"
+    user: "{{ route53_ddns_win_group }}"
     rights: FullControl
     type: allow
     state: present
@@ -282,20 +282,20 @@
 
 - name: Disable inherited ACE's
   ansible.windows.win_acl_inheritance:
-    path: C:\Program Files\route53
+    path: "{{ route53_ddns_win_install_dir }}"
     state: absent
   when: ansible_system == 'Win32NT'
 
 - name: route53-ddns-client script windows
   ansible.windows.win_copy:
     src: route53-ddns-client-lite.ps1
-    dest: C:\Program Files\route53\route53-ddns-client-lite.ps1
+    dest: "{{ route53_ddns_win_install_dir }}\\route53-ddns-client-lite.ps1"
   when: ansible_system == 'Win32NT'
 
 - name: route53-ddns-client wrapper script windows
   ansible.windows.win_template:
     src: route53-ddns-client-lite-wrapper.ps1.j2
-    dest: C:\Program Files\route53\route53-ddns-client-lite-wrapper.ps1
+    dest: "{{ route53_ddns_win_install_dir }}\\route53-ddns-client-lite-wrapper.ps1"
   when: ansible_system == 'Win32NT'
 
 - name: route53-ddns-client systemd service
@@ -327,12 +327,12 @@
     $name = 'route53_dynamic_dns'
     $exe = 'powershell.exe'
     $params = '-command ".\route53-ddns-client-lite-wrapper.ps1" > route53.log 2>&1'
-    $location = "C:\Program Files\route53"
+    $location = "{{ route53_ddns_win_install_dir }}"
     # Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction:SilentlyContinue
     $action = New-ScheduledTaskAction –Execute "$exe" -Argument "$params" -WorkingDirectory $location
     $trigger = New-ScheduledTaskTrigger -AtStartup
     $trigger.delay = 'PT10S'
-    $principal = New-ScheduledTaskPrincipal -UserID "Administrator" -LogonType s4u -RunLevel Highest
+    $principal = New-ScheduledTaskPrincipal -UserID "{{ route53_ddns_win_user }}" -LogonType s4u -RunLevel Highest
     Register-ScheduledTask –TaskName $name -Action $action –Trigger $trigger -Principal $principal
   when:
     - ansible_system == 'Win32NT'

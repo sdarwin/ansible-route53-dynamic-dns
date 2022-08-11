@@ -35,3 +35,7 @@ route53_ddns_stack_disable_rollback: "false"
 route53_ddns_hostname_allow_internal: "true"
 route53_ddns_awscli_executable: "aws"
 route53_ddns_tmpdir: "/tmp/.ansible_tmp"
+
+route53_ddns_win_install_dir: C:\Program Files\route53
+route53_ddns_win_user: Administrator
+route53_ddns_win_group: Administrators

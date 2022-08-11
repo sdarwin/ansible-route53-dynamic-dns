@@ -6,6 +6,8 @@
     route53_ddns_route53zonename: "{{ lookup('env', 'ROUTE53_ZONENAME') }}"
     route53_ddns_route53zoneid: "{{ lookup('env', 'ROUTE53_ZONEID') }}"
     route53_ddns_hostname: "{{ inventory_hostname_short }}-{{ lookup('env', 'ANSIBLE_VERSION') }}"
+    route53_ddns_win_user: runneradmin
+    route53_ddns_win_group: Administrators
   pre_tasks:
     - name: All pre_tasks
       block:
