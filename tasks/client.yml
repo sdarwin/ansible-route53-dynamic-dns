@@ -267,20 +267,35 @@
 
 - name: route53-ddns-client dir - windows
   ansible.windows.win_file:
-    path: C:\route53
+    path: C:\Program Files\route53
     state: directory
+  when: ansible_system == 'Win32NT'
+
+- name: Set permissions on dir
+  ansible.windows.win_acl:
+    path: C:\Program Files\route53
+    user: Administrators
+    rights: FullControl
+    type: allow
+    state: present
+  when: ansible_system == 'Win32NT'
+
+- name: Disable inherited ACE's
+  ansible.windows.win_acl_inheritance:
+    path: C:\Program Files\route53
+    state: absent
   when: ansible_system == 'Win32NT'
 
 - name: route53-ddns-client script windows
   ansible.windows.win_copy:
     src: route53-ddns-client-lite.ps1
-    dest: C:\route53\route53-ddns-client-lite.ps1
+    dest: C:\Program Files\route53\route53-ddns-client-lite.ps1
   when: ansible_system == 'Win32NT'
 
 - name: route53-ddns-client wrapper script windows
   ansible.windows.win_template:
     src: route53-ddns-client-lite-wrapper.ps1.j2
-    dest: C:\route53\route53-ddns-client-lite-wrapper.ps1
+    dest: C:\Program Files\route53\route53-ddns-client-lite-wrapper.ps1
   when: ansible_system == 'Win32NT'
 
 - name: route53-ddns-client systemd service
@@ -308,7 +323,17 @@
   when: ansible_system == 'Win32NT'
 
 - name: Install windows scheduled task
-  ansible.windows.win_shell: schtasks /create /tn "route53_dynamic_dns" /sc onstart /delay 0000:10 /rl highest /ru system /tr "powershell.exe -windowstyle hidden -command C:\route53\route53-ddns-client-lite-wrapper.ps1 >> %TEMP%\route53.log 2>&1"
+  ansible.windows.win_shell: |
+    $name = 'route53_dynamic_dns'
+    $exe = 'powershell.exe'
+    $params = '-command ".\route53-ddns-client-lite-wrapper.ps1" > route53.log 2>&1'
+    $location = "C:\Program Files\route53"
+    # Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction:SilentlyContinue
+    $action = New-ScheduledTaskAction –Execute "$exe" -Argument "$params" -WorkingDirectory $location
+    $trigger = New-ScheduledTaskTrigger -AtStartup
+    $trigger.delay = 'PT10S'
+    $principal = New-ScheduledTaskPrincipal -UserID "Administrator" -LogonType s4u -RunLevel Highest
+    Register-ScheduledTask –TaskName $name -Action $action –Trigger $trigger -Principal $principal
   when:
     - ansible_system == 'Win32NT'
     - schtasksoutput.rc == 1

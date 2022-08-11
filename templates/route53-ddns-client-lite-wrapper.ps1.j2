@@ -1,2 +1,2 @@
 
-C:\route53\route53-ddns-client-lite.ps1 -myHostname {{ route53_ddns_hostname }}.{{ route53_ddns_route53zonename }} -mySharedSecret {{ route53_ddns_shared_secret }} -myAPIURL https://{{ route53_ddns_apiurl }} -myAPIKEY {{ route53_ddns_apikey }}
+& 'C:\Program Files\route53\route53-ddns-client-lite.ps1' -myHostname {{ route53_ddns_hostname }}.{{ route53_ddns_route53zonename }} -mySharedSecret {{ route53_ddns_shared_secret }} -myAPIURL https://{{ route53_ddns_apiurl }} -myAPIKEY {{ route53_ddns_apikey }}

@@ -13,6 +13,8 @@ Review defaults/main.yml, and configure required variables locally in groups_var
 
 On the ansible control machine, install boto3 and the AWS CLI. Configure the cli with credentials to be able to launch cloudformation stacks. `aws configure`. Refer to scripts/install-control-node.sh. The IAM user requires a set of permissions covered in files/iam_policy_route53_ddns_admin_general, that could be locked down further.
 
+In the inventory, add hosts to the route53_ddns_clients group.
+
 The playbook can be run in its entirety, or only in sections:
 
 Everything:  
