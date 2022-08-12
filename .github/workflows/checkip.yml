@@ -18,10 +18,27 @@ jobs:
         include:
           - os: macos-11
     steps:
-      - name: Test IP
+      - name: Test IP 1
         run: |
           set -xe
           for i in {1..20}; do
-             curl https://ipinfo.io/ip
+             curl -s https://ipinfo.io/ip
+             sleep 5
+          done
+
+      - name: Test IP 2
+        run: |
+          for i in {1..20}; do
+             curl -s https://ipinfo.io/ip >> output.txt
+             echo "" >> output.txt
+             sleep 5
+          done
+          cat output.txt
+
+      - name: Test IP 3
+        run: |
+          for i in {1..20}; do
+             curl -s https://ipinfo.io/ip
+             echo ""
              sleep 5
           done
