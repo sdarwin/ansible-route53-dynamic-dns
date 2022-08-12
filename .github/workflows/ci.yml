@@ -171,6 +171,7 @@ jobs:
       matrix:
         include:
           - os: windows-2019
+            ansible_version: 6.2
             # ansible_python_interpreter: C:\Python310\python.exe
             # Tests run in WSL. This is the ansible_python_interpreter for that environment:
             ansible_python_interpreter: /usr/bin/python3
@@ -178,11 +179,6 @@ jobs:
           # - latest
           - default
           # - alternative
-        ansible_version:
-          # - "2.10"
-          # - "4.10"
-          # - "5.1"
-          - "6.2"
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v2
