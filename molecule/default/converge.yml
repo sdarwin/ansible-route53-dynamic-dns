@@ -9,9 +9,11 @@
     route53_ddns_win_user: runneradmin
     route53_ddns_win_group: Administrators
   pre_tasks:
-    - name: Print hostname
+
+    - name: Print all hostnames
       ansible.builtin.debug:
         msg: "route53_ddns_hostname is {{ route53_ddns_hostname }}, route53_ddns_route53zonename is {{ route53_ddns_route53zonename }}"
+
     - name: All pre_tasks
       block:
         # - name: Check environment info

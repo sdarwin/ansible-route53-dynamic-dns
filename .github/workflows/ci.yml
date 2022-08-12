@@ -215,8 +215,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     # if: 1 == 2
     env:
-      ansible_version: "6.2"
-      WSLENV: ansible_version
+      ANSIBLE_VERSION: "5.1"
+      WSLENV: ANSIBLE_VERSION
     needs: cloudformation
     strategy:
       fail-fast: false
@@ -306,7 +306,7 @@ jobs:
           ANSIBLE_VERSION: ${{ matrix.ansible_version }}
           ROUTE53_ZONENAME: ${{ secrets.ROUTE53_ZONENAME }}
           ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
-          WSLENV: ansible_version
+          WSLENV: ANSIBLE_VERSION
 
   mac_clients:
     name: MacOSX Clients
