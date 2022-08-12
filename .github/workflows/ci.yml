@@ -306,9 +306,11 @@ jobs:
           ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
           WSLENV: ANSIBLE_VERSION
 
+  # The IP address in GHA is varying which causes problems for the route53 scripts.
+  # If it stays constant then Mac OSX should work.
   mac_clients:
     name: MacOSX Clients
-    # if: 1 == 2
+    if: 1 == 2
     runs-on: ${{ matrix.os }}
     needs: cloudformation
     strategy:
@@ -387,7 +389,7 @@ jobs:
     # if: 1 == 2
     needs:
       - linux_clients
-      - mac_clients
+      # - mac_clients
       - windows_clients
     strategy:
       fail-fast: false
