@@ -226,6 +226,7 @@ jobs:
         shell: wsl-bash {0}
         run: |
           set -xe
+          env
           if [[ -n "${{ github.event.pull_request.number }}" ]] && [[ "${{ matrix.scenario }}" == 'latest' ]]; then
             echo "Not testing 'latest' and 'pull request'"
           else
@@ -331,6 +332,7 @@ jobs:
   cleanup:
     name: Cleanup
     runs-on: ubuntu-latest
+    if: 1 == 2
     needs:
       - linux_clients
       - mac_clients

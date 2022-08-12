@@ -20,9 +20,9 @@
         #   become: false
         #   register: checkenvironment
 
-        # - name: Print environment info
-        #   ansible.builtin.debug:
-        #     var: checkenvironment
+        - name: Print hostname
+          ansible.builtin.debug:
+            msg: "route53_ddns_hostname is {{ route53_ddns_hostname }}, route53_ddns_route53zonename is {{ route53_ddns_route53zonename }}"
 
         - name: Update apt cache.
           ansible.builtin.apt: update_cache=yes cache_valid_time=600
