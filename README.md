@@ -1,6 +1,4 @@
 
-# This is in active development, and should be ready soon. Don't use yet. 
-
 # Route53 Dynamic DNS
 
 [Amazon Web Services - Labs](https://github.com/awslabs) has created an interesting and helpful solution to the problem of updating DNS records when a client's IP address changes. It can be found at [https://github.com/awslabs/route53-dynamic-dns-with-lambda](https://github.com/awslabs/route53-dynamic-dns-with-lambda). 
@@ -32,6 +30,6 @@ The client scripts:
 ansible-playbook -t client playbooks/default.yml
 ```
 
-
+That should cover the basic usage. Additional topics or faqs may be added in [docs/discussion.md](docs/discussion.md).
 
 
