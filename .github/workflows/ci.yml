@@ -167,6 +167,7 @@ jobs:
   windows_clients:
     name: Windows Clients
     runs-on: ${{ matrix.os }}
+    if: 1 == 2
     env:
       WSLENV: ansible_version
     needs: cloudformation
@@ -338,10 +339,10 @@ jobs:
     name: Cleanup
     runs-on: ubuntu-latest
     # if: 1 == 2
-    needs:
-      - linux_clients
-      - mac_clients
-      - windows_clients
+    # needs:
+    #   - linux_clients
+    #   - mac_clients
+    #   - windows_clients
     strategy:
       fail-fast: false
       matrix:
