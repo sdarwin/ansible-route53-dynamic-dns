@@ -376,6 +376,7 @@ jobs:
 
       - name: Run cleanup
         run: |
+          ansible-galaxy install -r requirements.yml
           ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/default/removestack.yml
 
         env:
