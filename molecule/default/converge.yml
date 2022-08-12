@@ -11,18 +11,18 @@
   pre_tasks:
     - name: All pre_tasks
       block:
-        - name: Check environment info
-          ansible.builtin.shell: |
-            whoami
-            pwd
-            env
-          changed_when: false
-          become: false
-          register: checkenvironment
+        # - name: Check environment info
+        #   ansible.builtin.shell: |
+        #     whoami
+        #     pwd
+        #     env
+        #   changed_when: false
+        #   become: false
+        #   register: checkenvironment
 
-        - name: Print environment info
-          ansible.builtin.debug:
-            var: checkenvironment
+        # - name: Print environment info
+        #   ansible.builtin.debug:
+        #     var: checkenvironment
 
         - name: Update apt cache.
           ansible.builtin.apt: update_cache=yes cache_valid_time=600
