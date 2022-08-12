@@ -332,7 +332,7 @@
 
 - name: Debug service 2
   ansible.builtin.debug:
-    msg: "{{ debugoutout }}"
+    msg: "{{ debugoutput }}"
   when: ansible_system == 'Linux'
   failed_when: false
 
