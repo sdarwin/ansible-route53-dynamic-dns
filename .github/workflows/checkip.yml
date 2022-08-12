@@ -1,5 +1,5 @@
 ---
-name: CI
+name: Check IP
 'on':
   pull_request:
   push:
