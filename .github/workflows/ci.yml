@@ -37,9 +37,55 @@ jobs:
           yamllint .
           ansible-lint .
 
+  cleanup_initial:
+    name: Cleanup Initial
+    runs-on: ubuntu-latest
+    # if: 1 == 2
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu2004
+            playbook: converge.yml
+            ansible_version: "6.2"
+            ansible_python_interpreter: /opt/hostedtoolcache/Python/3.10.5/x64/bin/python3
+    steps:
+      - name: Check out the codebase.
+        uses: actions/checkout@v2
+        with:
+          path: 'sdarwin.route53_dynamic_dns'
+      - name: Set up Python 3.
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10.5'
+      - name: Install ansible
+        run: |
+           sudo pip3 install "ansible~=${{ matrix.ansible_version }}.0"
+      - name: Install test dependencies.
+        run: |
+          pip3 install ansible-lint molecule[docker] docker boto3
+      - name: Set up the test environment
+        run: |
+          cp tests/test-inventory.cleanup ./hosts
+          cp tests/ansible.cfg.cleanup ./ansible.cfg
+      - name: Configure aws cli
+        run: |
+          sudo aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          sudo aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          sudo aws configure set default.region ${{ secrets.AWS_REGION }}
+      - name: Run cleanup
+        run: |
+          ansible-galaxy install -r requirements.yml
+          ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/default/removestack.yml
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+
   cloudformation:
     name: Cloudformation
     runs-on: ubuntu-latest
+    needs:
+      - cleanup_initial
     # if: 1 == 2
     strategy:
       fail-fast: false
@@ -169,6 +215,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     # if: 1 == 2
     env:
+      ansible_version: "6.2"
       WSLENV: ansible_version
     needs: cloudformation
     strategy:
@@ -259,6 +306,7 @@ jobs:
           ANSIBLE_VERSION: ${{ matrix.ansible_version }}
           ROUTE53_ZONENAME: ${{ secrets.ROUTE53_ZONENAME }}
           ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
+          WSLENV: ansible_version
 
   mac_clients:
     name: MacOSX Clients
@@ -335,8 +383,8 @@ jobs:
           ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
           ANSIBLE_VERSION: ${{ matrix.ansible_version }}
 
-  cleanup:
-    name: Cleanup
+  cleanup_final:
+    name: Cleanup Final
     runs-on: ubuntu-latest
     if: 1 == 2
     # needs:
@@ -351,42 +399,34 @@ jobs:
             playbook: converge.yml
             ansible_version: "6.2"
             ansible_python_interpreter: /opt/hostedtoolcache/Python/3.10.5/x64/bin/python3
-
     steps:
       - name: Check out the codebase.
         uses: actions/checkout@v2
         with:
           path: 'sdarwin.route53_dynamic_dns'
-
       - name: Set up Python 3.
         uses: actions/setup-python@v2
         with:
           python-version: '3.10.5'
-
       - name: Install ansible
         run: |
            sudo pip3 install "ansible~=${{ matrix.ansible_version }}.0"
-
       - name: Install test dependencies.
         run: |
           pip3 install ansible-lint molecule[docker] docker boto3
-
       - name: Set up the test environment
         run: |
           cp tests/test-inventory.cleanup ./hosts
           cp tests/ansible.cfg.cleanup ./ansible.cfg
-
       - name: Configure aws cli
         run: |
           sudo aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
           sudo aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           sudo aws configure set default.region ${{ secrets.AWS_REGION }}
-
       - name: Run cleanup
         run: |
           ansible-galaxy install -r requirements.yml
           ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/default/removestack.yml
-
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
