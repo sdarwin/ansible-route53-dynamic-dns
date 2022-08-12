@@ -37,227 +37,227 @@ jobs:
           yamllint .
           ansible-lint .
 
-  cloudformation:
-    name: Cloudformation
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distro: ubuntu2004
-            playbook: converge.yml
-            ansible_version: 6.2
-    steps:
-      - name: Check out the codebase.
-        uses: actions/checkout@v2
-        with:
-          path: 'sdarwin.route53_dynamic_dns'
-
-      - name: Set up Python 3.
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-
-      - name: Install ansible
-        run: |
-           sudo pip3 install "ansible~=${{ matrix.ansible_version }}.0"
-
-      - name: Install test dependencies.
-        run: pip3 install ansible-lint molecule[docker] docker boto3
-
-      - name: Configure aws cli
-        run: |
-          sudo aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          sudo aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          sudo aws configure set default.region ${{ secrets.AWS_REGION }}
-
-      - name: Run Molecule tests.
-        run: molecule test
-        env:
-          PY_COLORS: '1'
-          ANSIBLE_FORCE_COLOR: '1'
-          MOLECULE_DISTRO: ${{ matrix.distro }}
-          MOLECULE_PLAYBOOK: ${{ matrix.playbook }}
-          ROUTE53_ZONENAME: ${{ secrets.ROUTE53_ZONENAME }}
-          ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
-          ANSIBLE_VERSION: ${{ matrix.ansible_version }}
-
-  linux_clients:
-    name: Linux Clients
-    runs-on: ubuntu-latest
-    needs: cloudformation
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distro: centos7
-            playbook: converge.yml
-            ansible_version: 6.2
-          - distro: centos8
-            playbook: converge.yml
-            ansible_version: 6.2
-          - distro: debian9
-            playbook: converge.yml
-            ansible_version: 6.2
-          - distro: debian10
-            playbook: converge.yml
-            ansible_version: 6.2
-          - distro: debian11
-            playbook: converge.yml
-            ansible_version: 6.2
-          - distro: ubuntu1604
-            playbook: converge.yml
-            ansible_version: 6.2
-          - distro: ubuntu1804
-            playbook: converge.yml
-            ansible_version: 6.2
-          - distro: ubuntu2004
-            playbook: converge.yml
-            ansible_version: 6.2
-          - distro: ubuntu2204
-            playbook: converge.yml
-            ansible_version: 6.2
-          - distro: amazonlinux2
-            playbook: converge.yml
-            ansible_version: 6.2
-          - distro: rockylinux8
-            playbook: converge.yml
-            ansible_version: 6.2
-    steps:
-      - name: Check out the codebase.
-        uses: actions/checkout@v2
-        with:
-          path: 'sdarwin.route53_dynamic_dns'
-
-      - name: Set up Python 3.
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-
-      - name: Install ansible
-        run: |
-           sudo pip3 install "ansible~=${{ matrix.ansible_version }}.0"
-
-      - name: Install test dependencies.
-        run: pip3 install ansible-lint molecule[docker] docker boto3
-
-      - name: Configure aws cli
-        run: |
-          sudo aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          sudo aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          sudo aws configure set default.region ${{ secrets.AWS_REGION }}
-
-      - name: Run Molecule tests.
-        run: |
-          echo "distro is ${{ matrix.distro }}"
-          echo "playbook is ${{ matrix.distro }}"
-          echo "ansible_version is ${{ matrix.ansible_version }}"
-          molecule test -- -t client
-        env:
-          PY_COLORS: '1'
-          ANSIBLE_FORCE_COLOR: '1'
-          MOLECULE_DISTRO: ${{ matrix.distro }}
-          MOLECULE_PLAYBOOK: ${{ matrix.playbook }}
-          ROUTE53_ZONENAME: ${{ secrets.ROUTE53_ZONENAME }}
-          ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
-          ANSIBLE_VERSION: ${{ matrix.ansible_version }}
-
-  windows_clients:
-    name: Windows Clients
-    runs-on: ${{ matrix.os }}
-    needs: cloudformation
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-2019
-            ansible_version: 6.2
-            # ansible_python_interpreter: C:\Python310\python.exe
-            # Tests run in WSL. This is the ansible_python_interpreter for that environment:
-            ansible_python_interpreter: /usr/bin/python3
-        scenario:
-          # - latest
-          - default
-          # - alternative
-    steps:
-      - name: Check out the codebase
-        uses: actions/checkout@v2
-        with:
-          path: 'sdarwin.route53_dynamic_dns'
-
-      - name: install ssh
-        run: |
-          Set-PSDebug -Trace 1
-          net user runneradmin 9!test12345678
-          choco install -y --package-parameters=/SSHServerFeature openssh
-
-      - uses: Vampire/setup-wsl@v1
-        with:
-          distribution: Ubuntu-20.04
-          additional-packages:
-            python3-pip
-            net-tools
-            sshpass
-            unzip
-
-      - name: set up the test environment
-        shell: wsl-bash {0}
-        run: |
-          set -xe
-          mkdir -p /etc/ansible/roles
-          chmod -R 755 /etc/ansible
-          cp tests/test-inventory.windows /etc/ansible/hosts
-          cp tests/ansible.cfg.windows /etc/ansible/ansible.cfg
-          pip3 install "ansible~=${{ matrix.ansible_version }}.0"
-          pip3 install -r tests/test-requirements.windows.txt
-          WORKSPACE_PATH=$(pwd)
-          ln -s $WORKSPACE_PATH /etc/ansible/roles/sdarwin.route53_dynamic_dns
-
-          mkdir -p downloads/awscli
-          cd downloads/awscli
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install
-          sudo aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          sudo aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          sudo aws configure set default.region ${{ secrets.AWS_REGION }}
-
-      - name: playbook tests
-        shell: wsl-bash {0}
-        run: |
-          set -xe
-          if [[ -n "${{ github.event.pull_request.number }}" ]] && [[ "${{ matrix.scenario }}" == 'latest' ]]; then
-            echo "Not testing 'latest' and 'pull request'"
-          else
-            echo "Test the playbook's syntax"
-            ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/converge.yml --syntax-check
-
-            # echo "Run the prepare playbook"
-            # ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/prepare.yml
-
-            echo "Run the main playbook"
-            ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" -t client molecule/${{ matrix.scenario }}/converge.yml
-
-            echo "Test the results"
-            ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/verify.yml
-
-            echo "Idempotence check"
-            idempotence=$(mktemp)
-            ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" -t client molecule/${{ matrix.scenario }}/converge.yml | tee -a ${idempotence}
-            tail ${idempotence} | grep -q 'changed=0.*failed=0' && (echo 'Idempotence test: pass' && exit 0) || (echo 'Idempotence test: fail' && exit 1)
-          fi
-        env:
-          ANSIBLE_FORCE_COLOR: '1'
-          OBJC_DISABLE_INITIALIZE_FORK_SAFETY: 'YES'
-          ANSIBLE_CONFIG: '/etc/ansible/ansible.cfg'
-          ROUTE53_ZONENAME: ${{ secrets.ROUTE53_ZONENAME }}
-          ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
-          ANSIBLE_VERSION: ${{ matrix.ansible_version }}
+#   cloudformation:
+#     name: Cloudformation
+#     runs-on: ubuntu-latest
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         include:
+#           - distro: ubuntu2004
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#     steps:
+#       - name: Check out the codebase.
+#         uses: actions/checkout@v2
+#         with:
+#           path: 'sdarwin.route53_dynamic_dns'
+# 
+#       - name: Set up Python 3.
+#         uses: actions/setup-python@v2
+#         with:
+#           python-version: '3.x'
+# 
+#       - name: Install ansible
+#         run: |
+#            sudo pip3 install "ansible~=${{ matrix.ansible_version }}.0"
+# 
+#       - name: Install test dependencies.
+#         run: pip3 install ansible-lint molecule[docker] docker boto3
+# 
+#       - name: Configure aws cli
+#         run: |
+#           sudo aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           sudo aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           sudo aws configure set default.region ${{ secrets.AWS_REGION }}
+# 
+#       - name: Run Molecule tests.
+#         run: molecule test
+#         env:
+#           PY_COLORS: '1'
+#           ANSIBLE_FORCE_COLOR: '1'
+#           MOLECULE_DISTRO: ${{ matrix.distro }}
+#           MOLECULE_PLAYBOOK: ${{ matrix.playbook }}
+#           ROUTE53_ZONENAME: ${{ secrets.ROUTE53_ZONENAME }}
+#           ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
+#           ANSIBLE_VERSION: ${{ matrix.ansible_version }}
+# 
+#   linux_clients:
+#     name: Linux Clients
+#     runs-on: ubuntu-latest
+#     needs: cloudformation
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         include:
+#           - distro: centos7
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#           - distro: centos8
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#           - distro: debian9
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#           - distro: debian10
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#           - distro: debian11
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#           - distro: ubuntu1604
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#           - distro: ubuntu1804
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#           - distro: ubuntu2004
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#           - distro: ubuntu2204
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#           - distro: amazonlinux2
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#           - distro: rockylinux8
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#     steps:
+#       - name: Check out the codebase.
+#         uses: actions/checkout@v2
+#         with:
+#           path: 'sdarwin.route53_dynamic_dns'
+# 
+#       - name: Set up Python 3.
+#         uses: actions/setup-python@v2
+#         with:
+#           python-version: '3.x'
+# 
+#       - name: Install ansible
+#         run: |
+#            sudo pip3 install "ansible~=${{ matrix.ansible_version }}.0"
+# 
+#       - name: Install test dependencies.
+#         run: pip3 install ansible-lint molecule[docker] docker boto3
+# 
+#       - name: Configure aws cli
+#         run: |
+#           sudo aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           sudo aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           sudo aws configure set default.region ${{ secrets.AWS_REGION }}
+# 
+#       - name: Run Molecule tests.
+#         run: |
+#           echo "distro is ${{ matrix.distro }}"
+#           echo "playbook is ${{ matrix.distro }}"
+#           echo "ansible_version is ${{ matrix.ansible_version }}"
+#           molecule test -- -t client
+#         env:
+#           PY_COLORS: '1'
+#           ANSIBLE_FORCE_COLOR: '1'
+#           MOLECULE_DISTRO: ${{ matrix.distro }}
+#           MOLECULE_PLAYBOOK: ${{ matrix.playbook }}
+#           ROUTE53_ZONENAME: ${{ secrets.ROUTE53_ZONENAME }}
+#           ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
+#           ANSIBLE_VERSION: ${{ matrix.ansible_version }}
+# 
+#   windows_clients:
+#     name: Windows Clients
+#     runs-on: ${{ matrix.os }}
+#     needs: cloudformation
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         include:
+#           - os: windows-2019
+#             ansible_version: 6.2
+#             # ansible_python_interpreter: C:\Python310\python.exe
+#             # Tests run in WSL. This is the ansible_python_interpreter for that environment:
+#             ansible_python_interpreter: /usr/bin/python3
+#         scenario:
+#           # - latest
+#           - default
+#           # - alternative
+#     steps:
+#       - name: Check out the codebase
+#         uses: actions/checkout@v2
+#         with:
+#           path: 'sdarwin.route53_dynamic_dns'
+# 
+#       - name: install ssh
+#         run: |
+#           Set-PSDebug -Trace 1
+#           net user runneradmin 9!test12345678
+#           choco install -y --package-parameters=/SSHServerFeature openssh
+# 
+#       - uses: Vampire/setup-wsl@v1
+#         with:
+#           distribution: Ubuntu-20.04
+#           additional-packages:
+#             python3-pip
+#             net-tools
+#             sshpass
+#             unzip
+# 
+#       - name: set up the test environment
+#         shell: wsl-bash {0}
+#         run: |
+#           set -xe
+#           mkdir -p /etc/ansible/roles
+#           chmod -R 755 /etc/ansible
+#           cp tests/test-inventory.windows /etc/ansible/hosts
+#           cp tests/ansible.cfg.windows /etc/ansible/ansible.cfg
+#           pip3 install "ansible~=${{ matrix.ansible_version }}.0"
+#           pip3 install -r tests/test-requirements.windows.txt
+#           WORKSPACE_PATH=$(pwd)
+#           ln -s $WORKSPACE_PATH /etc/ansible/roles/sdarwin.route53_dynamic_dns
+# 
+#           mkdir -p downloads/awscli
+#           cd downloads/awscli
+#           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+#           unzip awscliv2.zip
+#           sudo ./aws/install
+#           sudo aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           sudo aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           sudo aws configure set default.region ${{ secrets.AWS_REGION }}
+# 
+#       - name: playbook tests
+#         shell: wsl-bash {0}
+#         run: |
+#           set -xe
+#           if [[ -n "${{ github.event.pull_request.number }}" ]] && [[ "${{ matrix.scenario }}" == 'latest' ]]; then
+#             echo "Not testing 'latest' and 'pull request'"
+#           else
+#             echo "Test the playbook's syntax"
+#             ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/converge.yml --syntax-check
+# 
+#             # echo "Run the prepare playbook"
+#             # ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/prepare.yml
+# 
+#             echo "Run the main playbook"
+#             ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" -t client molecule/${{ matrix.scenario }}/converge.yml
+# 
+#             echo "Test the results"
+#             ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/${{ matrix.scenario }}/verify.yml
+# 
+#             echo "Idempotence check"
+#             idempotence=$(mktemp)
+#             ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" -t client molecule/${{ matrix.scenario }}/converge.yml | tee -a ${idempotence}
+#             tail ${idempotence} | grep -q 'changed=0.*failed=0' && (echo 'Idempotence test: pass' && exit 0) || (echo 'Idempotence test: fail' && exit 1)
+#           fi
+#         env:
+#           ANSIBLE_FORCE_COLOR: '1'
+#           OBJC_DISABLE_INITIALIZE_FORK_SAFETY: 'YES'
+#           ANSIBLE_CONFIG: '/etc/ansible/ansible.cfg'
+#           ROUTE53_ZONENAME: ${{ secrets.ROUTE53_ZONENAME }}
+#           ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
+#           ANSIBLE_VERSION: ${{ matrix.ansible_version }}
 
   mac_clients:
     name: MacOSX Clients
     runs-on: ${{ matrix.os }}
-    needs: cloudformation
+    # needs: cloudformation
     strategy:
       fail-fast: false
       matrix:
@@ -328,56 +328,56 @@ jobs:
           ROUTE53_ZONEID: ${{ secrets.ROUTE53_ZONEID }}
           ANSIBLE_VERSION: ${{ matrix.ansible_version }}
 
-  cleanup:
-    name: Cleanup
-    runs-on: ubuntu-latest
-    needs:
-      - linux_clients
-      - mac_clients
-      - windows_clients
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distro: ubuntu2004
-            playbook: converge.yml
-            ansible_version: 6.2
-            ansible_python_interpreter: /opt/hostedtoolcache/Python/3.10.5/x64/bin/python3
-
-    steps:
-      - name: Check out the codebase.
-        uses: actions/checkout@v2
-        with:
-          path: 'sdarwin.route53_dynamic_dns'
-
-      - name: Set up Python 3.
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.10.5'
-
-      - name: Install ansible
-        run: |
-           sudo pip3 install "ansible~=${{ matrix.ansible_version }}.0"
-
-      - name: Install test dependencies.
-        run: |
-          pip3 install ansible-lint molecule[docker] docker boto3
-
-      - name: Set up the test environment
-        run: |
-          cp tests/test-inventory.cleanup ./hosts
-          cp tests/ansible.cfg.cleanup ./ansible.cfg
-
-      - name: Configure aws cli
-        run: |
-          sudo aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          sudo aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          sudo aws configure set default.region ${{ secrets.AWS_REGION }}
-
-      - name: Run cleanup
-        run: |
-          ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/default/removestack.yml
-
-        env:
-          PY_COLORS: '1'
-          ANSIBLE_FORCE_COLOR: '1'
+#   cleanup:
+#     name: Cleanup
+#     runs-on: ubuntu-latest
+#     needs:
+#       - linux_clients
+#       - mac_clients
+#       - windows_clients
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         include:
+#           - distro: ubuntu2004
+#             playbook: converge.yml
+#             ansible_version: 6.2
+#             ansible_python_interpreter: /opt/hostedtoolcache/Python/3.10.5/x64/bin/python3
+# 
+#     steps:
+#       - name: Check out the codebase.
+#         uses: actions/checkout@v2
+#         with:
+#           path: 'sdarwin.route53_dynamic_dns'
+# 
+#       - name: Set up Python 3.
+#         uses: actions/setup-python@v2
+#         with:
+#           python-version: '3.10.5'
+# 
+#       - name: Install ansible
+#         run: |
+#            sudo pip3 install "ansible~=${{ matrix.ansible_version }}.0"
+# 
+#       - name: Install test dependencies.
+#         run: |
+#           pip3 install ansible-lint molecule[docker] docker boto3
+# 
+#       - name: Set up the test environment
+#         run: |
+#           cp tests/test-inventory.cleanup ./hosts
+#           cp tests/ansible.cfg.cleanup ./ansible.cfg
+# 
+#       - name: Configure aws cli
+#         run: |
+#           sudo aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           sudo aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           sudo aws configure set default.region ${{ secrets.AWS_REGION }}
+# 
+#       - name: Run cleanup
+#         run: |
+#           ansible-playbook -e "ansible_python_interpreter=${{ matrix.ansible_python_interpreter }}" molecule/default/removestack.yml
+# 
+#         env:
+#           PY_COLORS: '1'
+#           ANSIBLE_FORCE_COLOR: '1'

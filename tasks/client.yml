@@ -164,6 +164,10 @@
     route53_ddns_shared_secret: "{{ route53_ddns_secret_input | password_hash('sha256', route53_ddns_secret_salt) | reverse | truncate(16, true, '') }}"
   when: not route53_ddns_shared_secret
 
+- name: Debugging secret
+  ansible.builtin.debug:
+    msg: "uuid is {{ uuid }} and secret is {{ route53_ddns_shared_secret }}"
+
 - name: Create tmp dir
   ansible.builtin.file:
     dest: "{{ route53_ddns_tmpdir }}"
@@ -204,6 +208,10 @@
   register: check_item_output
   delegate_to: localhost
   changed_when: false
+
+- name: debug result in dynamo
+  ansible.builtin.debug:
+    msg: "{{ check_item_output }}"
 
 - name: Check if record changed
   ansible.builtin.set_fact:
