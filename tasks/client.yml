@@ -359,7 +359,7 @@
   when: ansible_distribution == "MacOSX"
 
 - name: Run osx task
-  ansible.builtin.shell:
+  ansible.builtin.command:
     cmd: cat /usr/local/bin/route53-ddns-client-wrapper.sh
   register: macoutput1
   changed_when: false
@@ -373,7 +373,7 @@
     - ansible_distribution == 'MacOSX'
 
 - name: Run osx task 2
-  ansible.builtin.shell:
+  ansible.builtin.command:
     cmd: /usr/local/bin/route53-ddns-client-wrapper.sh
   register: macoutput2
   changed_when: false
