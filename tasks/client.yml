@@ -360,14 +360,26 @@
 
 - name: Run osx task
   ansible.builtin.shell:
-    cmd:
-      cat /usr/local/bin/route53-ddns-client-wrapper.sh
-      echo "That was it"
-      /usr/local/bin/route53-ddns-client-wrapper.sh
-  register: macoutput
+    cmd: cat /usr/local/bin/route53-ddns-client-wrapper.sh
+  register: macoutput1
   when:
     - ansible_distribution == 'MacOSX'
 
 - name: debug osx task
   ansible.builtin.debug:
-    msg: "{{ macoutput }}"
+    msg: "{{ macoutput1 }}"
+  when:
+    - ansible_distribution == 'MacOSX'
+
+- name: Run osx task 2
+  ansible.builtin.shell:
+    cmd: /usr/local/bin/route53-ddns-client-wrapper.sh
+  register: macoutput2
+  when:
+    - ansible_distribution == 'MacOSX'
+
+- name: debug osx task
+  ansible.builtin.debug:
+    msg: "{{ macoutput2 }}"
+  when:
+    - ansible_distribution == 'MacOSX'
