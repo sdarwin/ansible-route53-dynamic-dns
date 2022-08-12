@@ -355,5 +355,19 @@
     owner: root
     group: "{{ route53_ddns_root_group }}"
     mode: 0755
-  notify: Run osx task
+  # notify: Run osx task
   when: ansible_distribution == "MacOSX"
+
+- name: Run osx task
+  ansible.builtin.shell:
+    cmd:
+      cat /usr/local/bin/route53-ddns-client-wrapper.sh
+      echo "That was it"
+      /usr/local/bin/route53-ddns-client-wrapper.sh
+  register: macoutput
+  when:
+    - ansible_distribution == 'MacOSX'
+
+- name: debug osx task
+  ansible.builtin.debug:
+    msg: "{{ macoutput }}"

@@ -2,10 +2,10 @@
 localhost ansible_connection=local
 
 [targetnodes]
-targethost ansible_host=127.0.0.1
+targethost-win ansible_host=127.0.0.1
 
 [windows]
-targethost
+targethost-win
 
 [windows:vars]
 ansible_user=runneradmin

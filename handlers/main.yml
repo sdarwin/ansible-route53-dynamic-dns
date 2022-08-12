@@ -5,6 +5,8 @@
     - ansible_system == 'Win32NT'
 
 - name: Run osx task
-  ansible.builtin.command: /usr/local/bin/route53-ddns-client-wrapper.sh
+  ansible.builtin.shell:
+    cmd:
+      /usr/local/bin/route53-ddns-client-wrapper.sh
   when:
     - ansible_distribution == 'MacOSX'
