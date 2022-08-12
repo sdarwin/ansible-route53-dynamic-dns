@@ -66,16 +66,6 @@
             route53_ddns_route53zonename: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['route53ZoneName'] }}"
             route53_ddns_templateversion: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['templateVersion'] }}"
 
-            #     - name: Discover IP address  # noqa command-instead-of-module
-            #       shell:
-            #         cmd: |
-            #           set -o pipefail
-            #           curl -q --{{ route53_ddns_ip_version }} -s  -H "x-api-key: {{ route53_ddns_apikey }}" "{{ route53_ddns_apiurl }}?mode=get" | jq -r '.return_message //empty'
-            #         args:
-            #           executable: /bin/bash
-            #       changed_when: false
-            #       register: discoverip
-
         - name: Discover IP address Linux  # noqa command-instead-of-module risky-shell-pipe
           ansible.builtin.shell: "curl -q --{{ route53_ddns_ip_version }} -s  -H 'x-api-key: {{ route53_ddns_apikey }}' 'https://{{ route53_ddns_apiurl }}?mode=get' | jq -r '.return_message //empty'"
           changed_when: false

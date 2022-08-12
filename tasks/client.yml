@@ -164,10 +164,6 @@
     route53_ddns_shared_secret: "{{ route53_ddns_secret_input | password_hash('sha256', route53_ddns_secret_salt) | reverse | truncate(16, true, '') }}"
   when: not route53_ddns_shared_secret
 
-- name: Debugging secret
-  ansible.builtin.debug:
-    msg: "uuid is {{ uuid }} and secret is {{ route53_ddns_shared_secret }}"
-
 - name: Create tmp dir
   ansible.builtin.file:
     dest: "{{ route53_ddns_tmpdir }}"
@@ -322,21 +318,6 @@
     state: started
     daemon_reload: true
   when: ansible_system == 'Linux'
-  failed_when: false
-
-- name: Debug service
-  ansible.builtin.command: systemctl status route53-ddns-client.service
-  register: debugoutput
-  when: ansible_system == 'Linux'
-  failed_when: false
-  changed_when: false
-
-- name: Debug service 2
-  ansible.builtin.debug:
-    msg: "{{ debugoutput }}"
-  when: ansible_system == 'Linux'
-  failed_when: false
-  changed_when: false
 
 - name: Check if windows task exists
   ansible.windows.win_shell: schtasks /Query /TN "route53_dynamic_dns" /V /FO List
@@ -370,33 +351,5 @@
     owner: root
     group: "{{ route53_ddns_root_group }}"
     mode: 0755
-  # notify: Run osx task
+  notify: Run osx task
   when: ansible_distribution == "MacOSX"
-
-- name: Run osx task
-  ansible.builtin.command:
-    cmd: cat /usr/local/bin/route53-ddns-client-wrapper.sh
-  register: macoutput1
-  changed_when: false
-  when:
-    - ansible_distribution == 'MacOSX'
-
-- name: debug osx task
-  ansible.builtin.debug:
-    msg: "{{ macoutput1 }}"
-  when:
-    - ansible_distribution == 'MacOSX'
-
-- name: Run osx task 2
-  ansible.builtin.command:
-    cmd: /usr/local/bin/route53-ddns-client-wrapper.sh
-  register: macoutput2
-  changed_when: false
-  when:
-    - ansible_distribution == 'MacOSX'
-
-- name: debug osx task
-  ansible.builtin.debug:
-    msg: "{{ macoutput2 }}"
-  when:
-    - ansible_distribution == 'MacOSX'
