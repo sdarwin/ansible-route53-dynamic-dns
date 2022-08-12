@@ -119,7 +119,9 @@ jobs:
           sudo aws configure set default.region ${{ secrets.AWS_REGION }}
 
       - name: Run Molecule tests.
-        run: molecule test
+        run: |
+          ansible-galaxy install -r requirements.yml
+          molecule test
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
