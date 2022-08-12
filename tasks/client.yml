@@ -1,0 +1,355 @@
+---
+# Basic calculation of hostname:
+# route53_ddns_hostname: "{{ inventory_hostname_short }}"
+
+# More advanced method which is preferable since it can be adjusted:
+- name: Calculate route53_ddns_hostname
+  ansible.builtin.set_fact:
+    route53_ddns_hostname: "{{ inventory_hostname.split('.')[route53_ddns_hostname_part_1:route53_ddns_hostname_part_2] | join('.') }}"
+  when:
+    - not route53_ddns_hostname
+
+- name: Show route53_ddns_hostname
+  ansible.builtin.debug:
+    msg: "Hostname is {{ route53_ddns_hostname }}"
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+  changed_when: false
+  when: ansible_os_family == 'Debian'
+
+- name: Install packages
+  ansible.builtin.package:
+    name:
+      - jq
+      - curl
+  when: ansible_system == 'Linux'
+
+- name: install brew packages 1
+  community.general.homebrew:
+    name: jq
+    state: present
+  become: false
+  register: brewpackages
+  failed_when: false
+  when: ansible_distribution == 'MacOSX'
+
+- name: Install brew executable 1
+  ansible.builtin.shell:
+    # cmd: $(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)
+    cmd: |
+      set -ex
+      curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh > brewinstaller.sh
+      chmod 755 brewinstaller.sh
+      pwd
+      ls -al
+    executable: /bin/bash
+  when:
+    - ansible_distribution == 'MacOSX'
+    - brewpackages is not succeeded
+  become: false
+
+- name: Install brew executable 2
+  ansible.builtin.shell:
+    # cmd: $(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)
+    cmd: |
+      NONINTERACTIVE=1 ./brewinstaller.sh
+    executable: /bin/bash
+  when:
+    - ansible_distribution == 'MacOSX'
+    - brewpackages is not succeeded
+  become: false
+
+- name: install brew packages 2
+  community.general.homebrew:
+    name: jq
+    state: present
+  become: false
+  when:
+    - ansible_distribution == 'MacOSX'
+    - brewpackages is not succeeded
+
+- name: Create bin dir
+  ansible.builtin.file:
+    dest: "/usr/local/bin"
+    state: directory
+    owner: root
+    group: "{{ route53_ddns_root_group }}"
+    mode: '0755'
+  when: ansible_system == 'Linux' or ansible_distribution == "MacOSX"
+
+- name: Create a symbolic link, if jq isn't in PATH
+  ansible.builtin.file:
+    src: /opt/homebrew/bin/jq
+    dest: /usr/local/bin/jq
+    state: link
+  failed_when: false
+  when: ansible_distribution == 'MacOSX'
+
+- name: Install packages - windows
+  chocolatey.chocolatey.win_chocolatey:
+    name:
+      - jq
+      - curl
+  when: ansible_system == 'Win32NT'
+
+- name: Get summary information about a stack
+  amazon.aws.cloudformation_info:
+    region: "{{ route53_ddns_region }}"
+    stack_name: "{{ route53_ddns_stack_name }}"
+  register: route53_ddns_stack_output
+  delegate_to: localhost
+  run_once: true
+
+- name: Set facts based on stack outputs
+  ansible.builtin.set_fact:
+    route53_ddns_dnszonenameservers: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['DNSZoneNameServers'] }}"
+    route53_ddns_apikey: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['apiKey'] }}"
+    route53_ddns_apioriginurl: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['apiOriginURL'] }}"
+    route53_ddns_apiurl: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['apiUrl'] }}"
+    route53_ddns_cloudfronturl: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['cloudFrontURL'] }}"
+    route53_ddns_route53zoneid: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['route53ZoneID'] }}"
+    route53_ddns_route53zonename: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['route53ZoneName'] }}"
+    route53_ddns_templateversion: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['templateVersion'] }}"
+    # this is an internal variable default value to be used later:
+    route53_ddns_record_changed: false
+
+- name: Set facts ipv4
+  ansible.builtin.set_fact:
+    route53_ddns_record_type: "A"
+  when:
+    - route53_ddns_ip_version == "ipv4"
+
+- name: Set facts ipv6
+  ansible.builtin.set_fact:
+    route53_ddns_record_type: "AAAA"
+  when:
+    - route53_ddns_ip_version == "ipv6"
+
+- name: Read local info - linux
+  ansible.builtin.set_fact:
+    uuid: "{{ lookup('ansible.builtin.file', '/sys/class/dmi/id/product_uuid') }}"
+  when: ansible_system == 'Linux'
+
+- name: Read local info - OSX
+  ansible.builtin.shell:
+    cmd: ioreg -d2 -c IOPlatformExpertDevice | awk -F\" '/IOPlatformUUID/{print $(NF-1)}'
+  when: ansible_distribution == 'MacOSX'
+  register: localoutput_mac
+  changed_when: false
+
+- name: Read local info - windows
+  ansible.windows.win_shell: (Get-CimInstance -Class Win32_ComputerSystemProduct).UUID
+  when: ansible_system == 'Win32NT'
+  register: localoutput_win
+  changed_when: false
+
+- name: Read windows part 2
+  ansible.builtin.set_fact:
+    uuid: "{{ localoutput_win.stdout | trim }}"
+  when: ansible_system == 'Win32NT'
+
+- name: Read OSX part 2
+  ansible.builtin.set_fact:
+    uuid: "{{ localoutput_mac.stdout | trim }}"
+  when: ansible_distribution == 'MacOSX'
+
+- name: Set fact
+  ansible.builtin.set_fact:
+    route53_ddns_secret_input: "{{ route53_ddns_hostname }}_{{ uuid }}"
+
+- name: Set shared secret
+  ansible.builtin.set_fact:
+    route53_ddns_shared_secret: "{{ route53_ddns_secret_input | password_hash('sha256', route53_ddns_secret_salt) | reverse | truncate(16, true, '') }}"
+  when: not route53_ddns_shared_secret
+
+- name: Create tmp dir
+  ansible.builtin.file:
+    dest: "{{ route53_ddns_tmpdir }}"
+    state: directory
+    mode: '0700'
+  delegate_to: localhost
+
+- name: Create json file to read dynamodb
+  ansible.builtin.template:
+    src: dynamodb_read_record.j2
+    dest: "{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_read_record_{{ route53_ddns_hostname }}"
+    owner: root
+    mode: '0600'
+  delegate_to: localhost
+  changed_when: false
+
+- name: Create json file to create new dynamodb item
+  ansible.builtin.template:
+    src: dynamodb_new_record.j2
+    dest: "{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_new_record_{{ route53_ddns_hostname }}"
+    owner: root
+    mode: '0600'
+  delegate_to: localhost
+  changed_when: false
+
+- name: Create json file to update dynamodb
+  ansible.builtin.template:
+    src: dynamodb_update_record.j2
+    dest: "{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_update_record_{{ route53_ddns_hostname }}"
+    owner: root
+    mode: '0600'
+  delegate_to: localhost
+  changed_when: false
+
+- name: Check if item exists in dynamodb
+  ansible.builtin.command:
+    cmd: "{{ route53_ddns_awscli_executable }} dynamodb get-item --table-name {{ route53_ddns_stack_name }}-config --key file://{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_read_record_{{ route53_ddns_hostname }}"
+  register: check_item_output
+  delegate_to: localhost
+  changed_when: false
+
+- name: debug result in dynamo
+  ansible.builtin.debug:
+    msg: "{{ check_item_output }}"
+
+- name: Check if record changed
+  ansible.builtin.set_fact:
+    route53_ddns_record_changed: true
+  when:
+    - check_item_output.stdout != ""
+    - check_item_output.stdout | from_json | json_query('Item.shared_secret.S') | trim != route53_ddns_shared_secret
+
+- name: Create record in dynamodb if missing
+  ansible.builtin.command:
+    cmd: "{{ route53_ddns_awscli_executable }} dynamodb put-item --table-name {{ route53_ddns_stack_name }}-config --item file://{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_new_record_{{ route53_ddns_hostname }}"
+  delegate_to: localhost
+  when: check_item_output.stdout == ""
+
+- name: Update record in dynamodb if not missing
+  ansible.builtin.command:
+    cmd: "{{ route53_ddns_awscli_executable }} dynamodb update-item --table-name {{ route53_ddns_stack_name }}-config --key file://{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_read_record_{{ route53_ddns_hostname }} --update-expression \"SET shared_secret = :shared_secret\" --expression-attribute-values file://{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_update_record_{{ route53_ddns_hostname }}"
+  delegate_to: localhost
+  when:
+    - check_item_output.stdout != ""
+    - route53_ddns_record_changed
+
+- name: Delete temporary file
+  ansible.builtin.file:
+    path: "{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_read_record_{{ route53_ddns_hostname }}"
+    state: absent
+  delegate_to: localhost
+  changed_when: false
+
+- name: Delete temporary file 2
+  ansible.builtin.file:
+    path: "{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_new_record_{{ route53_ddns_hostname }}"
+    state: absent
+  delegate_to: localhost
+  changed_when: false
+
+- name: Delete temporary file 3
+  ansible.builtin.file:
+    path: "{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_update_record_{{ route53_ddns_hostname }}"
+    state: absent
+  delegate_to: localhost
+  changed_when: false
+
+- name: route53-ddns-client script - linux
+  ansible.builtin.copy:
+    src: route53-ddns-client.sh
+    dest: /usr/local/bin/route53-ddns-client.sh
+    owner: root
+    group: "{{ route53_ddns_root_group }}"
+    mode: '0700'
+  when: ansible_system == 'Linux' or ansible_distribution == "MacOSX"
+
+- name: route53-ddns-client wrapper script
+  ansible.builtin.template:
+    src: route53-ddns-client-wrapper.sh.j2
+    dest: /usr/local/bin/route53-ddns-client-wrapper.sh
+    owner: root
+    group: "{{ route53_ddns_root_group }}"
+    mode: '0700'
+  when: ansible_system == 'Linux' or ansible_distribution == "MacOSX"
+
+- name: route53-ddns-client dir - windows
+  ansible.windows.win_file:
+    path: "{{ route53_ddns_win_install_dir }}"
+    state: directory
+  when: ansible_system == 'Win32NT'
+
+- name: Set permissions on dir
+  ansible.windows.win_acl:
+    path: "{{ route53_ddns_win_install_dir }}"
+    user: "{{ route53_ddns_win_group }}"
+    rights: FullControl
+    type: allow
+    state: present
+  when: ansible_system == 'Win32NT'
+
+- name: Disable inherited ACE's
+  ansible.windows.win_acl_inheritance:
+    path: "{{ route53_ddns_win_install_dir }}"
+    state: absent
+  when: ansible_system == 'Win32NT'
+
+- name: route53-ddns-client script windows
+  ansible.windows.win_copy:
+    src: route53-ddns-client-lite.ps1
+    dest: "{{ route53_ddns_win_install_dir }}\\route53-ddns-client-lite.ps1"
+  when: ansible_system == 'Win32NT'
+
+- name: route53-ddns-client wrapper script windows
+  ansible.windows.win_template:
+    src: route53-ddns-client-lite-wrapper.ps1.j2
+    dest: "{{ route53_ddns_win_install_dir }}\\route53-ddns-client-lite-wrapper.ps1"
+  when: ansible_system == 'Win32NT'
+
+- name: route53-ddns-client systemd service
+  ansible.builtin.template:
+    src: route53-ddns-client.service.j2
+    dest: /etc/systemd/system/route53-ddns-client.service
+    owner: root
+    group: root
+    mode: '0600'
+  when: ansible_system == 'Linux'
+
+- name: Enable and start route53-ddns-client service
+  ansible.builtin.systemd:
+    name: route53-ddns-client
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: ansible_system == 'Linux'
+
+- name: Check if windows task exists
+  ansible.windows.win_shell: schtasks /Query /TN "route53_dynamic_dns" /V /FO List
+  register: schtasksoutput
+  failed_when: false
+  changed_when: false
+  when: ansible_system == 'Win32NT'
+
+- name: Install windows scheduled task
+  ansible.windows.win_shell: |
+    $name = 'route53_dynamic_dns'
+    $exe = 'powershell.exe'
+    $params = '-command ".\route53-ddns-client-lite-wrapper.ps1" > route53.log 2>&1'
+    $location = "{{ route53_ddns_win_install_dir }}"
+    # Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction:SilentlyContinue
+    $action = New-ScheduledTaskAction –Execute "$exe" -Argument "$params" -WorkingDirectory $location
+    $trigger = New-ScheduledTaskTrigger -AtStartup
+    $trigger.delay = 'PT10S'
+    $principal = New-ScheduledTaskPrincipal -UserID "{{ route53_ddns_win_user }}" -LogonType s4u -RunLevel Highest
+    Register-ScheduledTask –TaskName $name -Action $action –Trigger $trigger -Principal $principal
+  when:
+    - ansible_system == 'Win32NT'
+    - schtasksoutput.rc == 1
+  notify:
+    - Run windows task
+
+- name: LaunchDaemon config
+  ansible.builtin.template:
+    src: route53.dyndns.plist.j2
+    dest: /Library/LaunchDaemons/route53.dyndns.plist
+    owner: root
+    group: "{{ route53_ddns_root_group }}"
+    mode: 0755
+  notify: Run osx task
+  when: ansible_distribution == "MacOSX"

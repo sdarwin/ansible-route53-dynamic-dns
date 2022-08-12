@@ -1,0 +1,8 @@
+---
+extends: default
+ignore: |
+  files/route53-ddns.yml
+rules:
+  line-length:
+    max: 600
+    level: warning

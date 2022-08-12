@@ -1,0 +1,34 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+lint: |
+  set -e
+  yamllint .
+  ansible-lint
+platforms:
+  - name: ${MOLECULE_DISTRO:-instanceX}
+    image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2004}-ansible:latest"
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /var/lib/docker
+    privileged: true
+    pre_build_image: true
+    groups:
+      - targetnodes
+
+provisioner:
+  name: ansible
+  env:
+    ROUTE53_ZONENAME: ${ROUTE53_ZONENAME}
+    ROUTE53_ZONEID: ${ROUTE53_ZONEID}
+  # inventory:
+  #   group_vars:
+  #     all:
+  #       route53_ddns_route53zonename: dyn2.logchart.com
+  #       route53_ddns_route53zoneid: Z07181252CBB2UY4ZOUKY
+  playbooks:
+    converge: ${MOLECULE_PLAYBOOK:-converge.yml}
+    verify: verify.yml

@@ -1,0 +1,19 @@
+---
+- name: Include OS-specific variables.
+  ansible.builtin.include_vars: "{{ ansible_os_family }}-os-family.yml"
+  tags:
+    - always
+
+# The "server" side, which are AWS services in this case
+- name: Include cloud
+  import_tasks: cloud.yml
+  delegate_to: localhost
+  run_once: true
+  tags:
+    - cloud
+
+# The "client" side, which runs on each machine
+- name: Include client
+  import_tasks: client.yml
+  tags:
+    - client

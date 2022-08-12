@@ -1,0 +1,11 @@
+---
+- name: Run the play
+  hosts: route53_ddns_clients:!windows
+  become: true
+  roles:
+    - sdarwin.route53_dynamic_dns
+
+- name: Run the play - windows
+  hosts: route53_ddns_clients:&windows
+  roles:
+    - sdarwin.route53_dynamic_dns

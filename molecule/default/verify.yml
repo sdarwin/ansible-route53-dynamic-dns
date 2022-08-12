@@ -1,0 +1,130 @@
+---
+- name: Verify
+  hosts: targetnodes
+  become: true
+  vars:
+    route53_ddns_region: us-east-1
+    route53_ddns_stack_name: dyndns
+    route53_ddns_ip_version: ipv4
+    route53_ddns_route53zonename: "{{ lookup('env', 'ROUTE53_ZONENAME') }}"
+    route53_ddns_route53zoneid: "{{ lookup('env', 'ROUTE53_ZONEID') }}"
+    route53_ddns_hostname_part_1: 0
+    route53_ddns_hostname_part_2: 1
+    route53_ddns_hostname: "{{ inventory_hostname_short }}-{{ lookup('env', 'ANSIBLE_VERSION') }}"
+
+  tasks:
+    - name: all verify tasks
+      block:
+        - name: Install packages Deb
+          ansible.builtin.apt:
+            name:
+              - dnsutils
+          when:
+            - ansible_os_family == 'Debian'
+
+        - name: Install packages RH
+          ansible.builtin.package:
+            name:
+              - bind-utils
+          when:
+            - ansible_os_family == 'RedHat'
+
+        - name: install win packages
+          win_chocolatey:
+            name:
+              - bind-toolsonly
+              - curl
+              - jq
+          when: ansible_system == 'Win32NT'
+
+        # - name: Calculate route53_ddns_hostname
+        #   ansible.builtin.set_fact:
+        #     route53_ddns_hostname: "{{ inventory_hostname.split('.')[route53_ddns_hostname_part_1:route53_ddns_hostname_part_2] | join('.') }}"
+        #   when:
+        #     - not route53_ddns_hostname
+
+        - name: Show route53_ddns_hostname
+          ansible.builtin.debug:
+            msg: "{{ route53_ddns_hostname }}"
+
+        - name: Get summary information about a stack
+          amazon.aws.cloudformation_info:
+            region: "{{ route53_ddns_region }}"
+            stack_name: "{{ route53_ddns_stack_name }}"
+          register: route53_ddns_stack_output
+          delegate_to: localhost
+          run_once: true
+
+        - name: Set facts based on stack outputs
+          ansible.builtin.set_fact:
+            route53_ddns_dnszonenameservers: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['DNSZoneNameServers'] }}"
+            route53_ddns_apikey: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['apiKey'] }}"
+            route53_ddns_apioriginurl: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['apiOriginURL'] }}"
+            route53_ddns_apiurl: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['apiUrl'] }}"
+            route53_ddns_cloudfronturl: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['cloudFrontURL'] }}"
+            route53_ddns_route53zoneid: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['route53ZoneID'] }}"
+            route53_ddns_route53zonename: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['route53ZoneName'] }}"
+            route53_ddns_templateversion: "{{ route53_ddns_stack_output['cloudformation'][route53_ddns_stack_name]['stack_outputs']['templateVersion'] }}"
+
+        - name: Discover IP address Linux  # noqa command-instead-of-module risky-shell-pipe
+          ansible.builtin.shell: "curl -q --{{ route53_ddns_ip_version }} -s  -H 'x-api-key: {{ route53_ddns_apikey }}' 'https://{{ route53_ddns_apiurl }}?mode=get' | jq -r '.return_message //empty'"
+          changed_when: false
+          register: discoverip_linux
+          when: ansible_system == 'Linux' or ansible_distribution == 'MacOSX'
+
+        - name: Set fact discoverip Linux
+          ansible.builtin.set_fact:
+            discoverip: "{{ discoverip_linux.stdout | trim }}"
+          when: ansible_system == 'Linux' or ansible_distribution == 'MacOSX'
+
+        - name: Discover IP address Windows  # noqa command-instead-of-module risky-shell-pipe
+          ansible.windows.win_shell: "C:\\ProgramData\\chocolatey\\bin\\curl.exe  -q --{{ route53_ddns_ip_version }} -s  -H 'x-api-key: {{ route53_ddns_apikey }}' 'https://{{ route53_ddns_apiurl }}?mode=get' | jq -r '.return_message //empty'"
+          changed_when: false
+          register: discoverip_win
+          when: ansible_system == 'Win32NT'
+
+        - name: Set fact discoverip Windows
+          ansible.builtin.set_fact:
+            discoverip: "{{ discoverip_win.stdout | trim }}"
+          when: ansible_system == 'Win32NT'
+
+        - name: Print discoverip
+          ansible.builtin.debug:
+            var: discoverip
+
+        - name: Check dns lookup Linux
+          ansible.builtin.shell: |
+            dig +short {{ route53_ddns_hostname }}.{{ route53_ddns_route53zonename }}
+          changed_when: false
+          register: dnslookup_linux
+          when: ansible_system == 'Linux' or ansible_distribution == 'MacOSX'
+
+        - name: Set fact dns lookup Linux
+          ansible.builtin.set_fact:
+            dnslookup: "{{ dnslookup_linux.stdout | trim }}"
+          when: ansible_system == 'Linux' or ansible_distribution == 'MacOSX'
+
+        - name: Check dns lookup Windows
+          ansible.windows.win_shell: |
+            dig +short {{ route53_ddns_hostname }}.{{ route53_ddns_route53zonename }}
+          changed_when: false
+          register: dnslookup_win
+          when: ansible_system == 'Win32NT'
+
+        - name: Set fact dns lookup Windows
+          ansible.builtin.set_fact:
+            dnslookup: "{{ dnslookup_win.stdout | trim }}"
+          when: ansible_system == 'Win32NT'
+
+        - name: Print dnslookup
+          ansible.builtin.debug:
+            var: dnslookup
+
+        - name: Compare results
+          ansible.builtin.assert:
+            that:
+              - discoverip | length > 0
+              - dnslookup | length > 0
+              - discoverip  == dnslookup
+      tags:
+        - always

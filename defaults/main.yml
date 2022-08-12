@@ -1,0 +1,41 @@
+---
+# The first set of variables must be set and should not stay as defaults:
+route53_ddns_route53zonename: dyn.example.com
+route53_ddns_secret_salt: xqPqHVUm4OWkC44F
+
+# The second set of variables you should carefully consider. They might need to be modified.
+route53_ddns_route53zoneid: ""
+
+# The third set of variables may be left as defaults or changed depending on your use case.
+route53_ddns_ip_source: public
+route53_ddns_cache_ttl_minutes: 0
+route53_ddns_ip_version: ipv4
+# a route53_ddns_shared_secret will be generated in tasks
+route53_ddns_shared_secret: ""
+# a route53_ddns_hostname will be calculated in tasks
+route53_ddns_hostname: ""
+route53_ddns_hostname_part_1: 0
+route53_ddns_hostname_part_2: 1
+route53_ddns_stack_name: dyndns
+route53_ddns_region: us-east-1
+route53_ddns_acmcertificatearn: ""
+route53_ddns_apicname: ""
+route53_ddns_cloudfrontpriceclass: "US-Canada-Europe"
+route53_ddns_ddbgsircu: "2"
+route53_ddns_ddbgsiwcu: "2"
+route53_ddns_ddbrcu: "2"
+route53_ddns_ddbwcu: "2"
+route53_ddns_defaultttl: "60"
+route53_ddns_enablecloudfront: "false"
+route53_ddns_templateversion: 0
+route53_ddns_useapikey: "true"
+
+route53_ddns_cloudformation_template: "files/route53-ddns.yml"
+route53_ddns_stack_disable_rollback: "false"
+route53_ddns_hostname_allow_internal: "true"
+route53_ddns_awscli_executable: "aws"
+route53_ddns_tmpdir: "/tmp/.ansible_tmp"
+
+route53_ddns_win_install_dir: C:\Program Files\route53
+route53_ddns_win_user: Administrator
+route53_ddns_win_group: Administrators

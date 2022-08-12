@@ -1,0 +1,27 @@
+---
+name: Check IP
+'on':
+  pull_request:
+  push:
+    branches:
+      - master
+      - develop
+      - feature/*
+
+jobs:
+  mac_clients:
+    name: MacOSX Clients
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-11
+    steps:
+      - name: Test IP
+        run: |
+          for i in {1..20}; do
+             curl -s https://ipinfo.io/ip
+             echo ""
+             sleep 5
+          done
