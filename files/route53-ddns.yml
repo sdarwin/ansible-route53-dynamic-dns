@@ -718,7 +718,7 @@ Resources:
             if not calculated_hash == validation_hash:
                 return_status = 'fail'
                 # return_message = 'Validation hashes do not match.'
-                return_message = 'Validation hashes do not match. calculated hash is ' + calculated_hash + ' and validation_hash is ' + validation_hash ' . and in the calculated_hash the source_ip is ' + source_ip.encode("utf-8") + ' and the calculated hostname is ' set_hostname.encode("utf-8")
+                return_message = 'Validation hashes do not match. calculated hash is ' + str(calculated_hash) + ' and validation_hash is ' + str(validation_hash) + ' . and in the calculated_hash the source_ip is ' + str(source_ip.encode("utf-8")) + ' and the calculated hostname is ' + str(set_hostname.encode("utf-8"))
                 return {'return_status': return_status,
                         'return_message': return_message}
             else:
