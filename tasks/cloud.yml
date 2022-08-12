@@ -40,6 +40,10 @@
       templateVersion: "{{ route53_ddns_templateversion }}"
       useApiKey: "{{ route53_ddns_useapikey }}"
 
+- name: Pause for 1 minute after launching stack to allow for setup
+  ansible.builtin.pause:
+    minutes: 1
+
 # - name: Get summary information about a stack
 #   amazon.aws.cloudformation_info:
 #     stack_name: "{{ route53_ddns_stack_name }}"
