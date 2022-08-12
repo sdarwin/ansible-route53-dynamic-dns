@@ -1,2 +1,2 @@
 [targetnodes]
-localhost ansible_connection=local
+targethost-mac ansible_connection=local

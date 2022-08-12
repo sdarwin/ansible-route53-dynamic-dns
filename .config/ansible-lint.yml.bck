@@ -1,5 +1,0 @@
----
-warn_list:
-  - internal-error
-skip_list:
-  - internal-error
