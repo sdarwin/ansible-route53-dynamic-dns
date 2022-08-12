@@ -220,7 +220,7 @@ if [ "$(echo "$reply" | jq -r '.return_status //empty')" == "success" ]; then
     fi
     echo "$(basename $0): Request succeeded: $(echo "$reply"| jq -r '.return_message //empty')"
 else
-    echo "$(basename $0): Request failed: ( debugging: $myPublicIP$myHostname$mySharedSecret converted to hash $myHash ) $(echo "$reply" | jq -r '.return_message //empty')"
+    echo "$(basename $0): Request failed: debugging: $myPublicIP$myHostname$mySharedSecret converted to hash $myHash $(echo "$reply" | jq -r '.return_message //empty')"
     exit 1
 fi
 
