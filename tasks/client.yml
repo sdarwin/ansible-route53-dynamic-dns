@@ -213,14 +213,14 @@
   ansible.builtin.set_fact:
     route53_ddns_record_changed: true
   when:
-    - check_item_output.stdout != ""
+    - check_item_output.stdout | length > 0
     - check_item_output.stdout | from_json | json_query('Item.shared_secret.S') | trim != route53_ddns_shared_secret
 
 - name: Create record in dynamodb if missing
   ansible.builtin.command:
     cmd: "{{ route53_ddns_awscli_executable }} dynamodb put-item --table-name {{ route53_ddns_stack_name }}-config --item file://{{ route53_ddns_tmpdir }}/route53_ddns_dynamodb_new_record_{{ route53_ddns_hostname }}"
   delegate_to: localhost
-  when: check_item_output.stdout == ""
+  when: check_item_output.stdout | length == 0
 
 - name: Update record in dynamodb if not missing
   ansible.builtin.command:
