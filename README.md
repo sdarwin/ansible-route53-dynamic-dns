@@ -1,7 +1,7 @@
 
 # Route53 Dynamic DNS
 
-[Amazon Web Services - Labs](https://github.com/awslabs) has created an interesting and helpful solution to the problem of updating DNS records when a client's IP address changes. It can be found at [https://github.com/awslabs/route53-dynamic-dns-with-lambda](https://github.com/awslabs/route53-dynamic-dns-with-lambda). 
+[Amazon Web Services - Labs](https://github.com/awslabs) has provided an interesting and helpful solution to the problem of updating DNS records when a client's IP address changes. It can be found at [https://github.com/awslabs/route53-dynamic-dns-with-lambda](https://github.com/awslabs/route53-dynamic-dns-with-lambda). 
 
 The goal of this Ansible role is to install and manage route53-dynamic-dns-with-lambda. The cloudformation template and client scripts are taken from that repository. You might consider installing route53-dynamic-dns-with-lambda manually first without the aid of Ansible, in order to learn how the system works.
 
